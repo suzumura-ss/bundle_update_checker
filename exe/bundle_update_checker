@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+require 'thor'
+require 'json'
+require 'bundle_update_checker'
+
+
+class Cli < Thor
+  class_option :dir, desc:'change directory before try', default:'./'
+
+  desc "check TEST_COMMAND", "Try bundle update with bundle group"
+  option :group,  desc:'update group', defult:'default'
+  def check(test_command)
+    Dir.chdir(options['dir'])
+    begin
+      checker = BundleUpdateChecker::TryUpdate.new(test_command, group:options['group'])
+    rescue
+      puts $!
+      exit 1
+    end
+    result = checker.try_all
+    puts result.to_json
+    exit result['_combine_'][0].to_i
+  end
+
+  desc "gem TEST_COMMAND GEM_NAME", "Try bundle update with specified gem"
+  def gem(test_command, gem_name)
+    Dir.chdir(options['dir'])
+    begin
+      checker = BundleUpdateChecker::TryUpdate.new(test_command)
+    rescue
+      puts $!
+      exit 1
+    end
+    result = checker.try_update(gem_name)
+    exit result[0].to_i
+  end
+end
+
+$stdout.sync = $stderr.sync = true
+Cli.start(ARGV)
