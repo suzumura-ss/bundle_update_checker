@@ -2,10 +2,14 @@
 require 'thor'
 require 'json'
 require 'bundle_update_checker'
+require 'cloudwatchlogger'
 
 
 class Cli < Thor
   class_option :dir, desc:'change directory before try', default:'./'
+  class_option :aws_region,     desc:'AWS Region for CloudWatchLog',  default:ENV['AWS_REGION']
+  class_option :aws_cwl_group,  desc:'Group name for CloudWatchLog',  default:nil
+  class_option :aws_cwl_stream, desc:'Stream name for CloudWatchLog', default:nil
 
   desc "check TEST_COMMAND", "Try bundle update with bundle group"
   option :group,  desc:'update group', defult:'default'
@@ -19,6 +23,13 @@ class Cli < Thor
     end
     result = checker.try_all
     puts result.to_json
+    if options['aws_cwl_group'] and options['aws_cwl_stream']
+      cwl = CloudWatchLogger.new(region:options['aws_region'],
+                                 log_group_name:options['aws_cwl_group'],
+                                 log_stream_name:options['aws_cwl_stream'])
+      cwl.put_log(result.to_json)
+      exit 0
+    end
     exit result['_combine_'][0].to_i
   end
 
