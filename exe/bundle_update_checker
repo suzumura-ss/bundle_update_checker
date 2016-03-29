@@ -13,6 +13,7 @@ class Cli < Thor
 
   desc "check TEST_COMMAND", "Try bundle update with bundle group"
   option :group,  desc:'update group', defult:'default'
+  option :expect_no_updates, desc:'except no updated gems', type: :boolean, defult:false
   def check(test_command)
     Dir.chdir(options['dir'])
     begin
@@ -30,7 +31,11 @@ class Cli < Thor
       cwl.put_log(result.to_json)
       exit 0
     end
-    exit result['_combine_'][0].to_i
+    exit result['_combine_'][0].to_i unless options['expect_no_updates']
+    exit (result.keys.inject(true){|s,v|
+      s &&= result[v].nil? if v!='_combine_'
+      s
+    })==true ? 0: 1
   end
 
   desc "gem TEST_COMMAND GEM_NAME", "Try bundle update with specified gem"
